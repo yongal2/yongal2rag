@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG 챗봇 시스템</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 350px 1fr 400px;
+            height: 100vh;
+            gap: 0;
+        }
+        
+        .panel {
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #ddd;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            background: #4A90E2;
+            color: white;
+            padding: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 20px;
+            min-height: 0;
+        }
+        
+        #rag-panel {
+            background: #f5f5f5;
+        }
+        
+        .upload-section {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .upload-btn {
+            width: 100%;
+            padding: 12px;
+            background: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .upload-btn:hover {
+            background: #357ABD;
+        }
+        
+        .document-list {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .document-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .document-item:last-child {
+            border-bottom: none;
+        }
+        
+        .doc-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .doc-name {
+            font-weight: bold;
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+        
+        .doc-meta {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .delete-btn {
+            padding: 6px 12px;
+            background: #E74C3C;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            flex-shrink: 0;
+            margin-left: 10px;
+        }
+        
+        .delete-btn:hover {
+            background: #C0392B;
+        }
+        
+        .hit-section {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .hit-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .hit-item {
+            padding: 8px;
+            background: #f9f9f9;
+            border-left: 3px solid #4A90E2;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        #chat-panel {
+            background: white;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 20px;
+            background: #fafafa;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        
+        .message.user {
+            background: #4A90E2;
+            color: white;
+            margin-left: auto;
+            align-self: flex-end;
+        }
+        
+        .message.assistant {
+            background: white;
+            border: 1px solid #ddd;
+            align-self: flex-start;
+        }
+        
+        .chat-input-section {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #ddd;
+            flex-shrink: 0;
+        }
+        
+        .chat-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .send-btn {
+            width: 100%;
+            padding: 12px;
+            background: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .send-btn:hover {
+            background: #357ABD;
+        }
+        
+        #log-panel {
+            background: #2C3E50;
+            border-right: none;
+        }
+        
+        #log-panel .panel-header {
+            background: #34495E;
+        }
+        
+        .log-content {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #ECF0F1;
+            line-height: 1.6;
+        }
+        
+        .log-entry {
+            padding: 8px;
+            border-bottom: 1px solid #34495E;
+            word-wrap: break-word;
+        }
+        
+        .log-timestamp {
+            color: #95A5A6;
+            margin-right: 10px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="panel" id="rag-panel">
+            <div class="panel-header">RAG 메뉴</div>
+            <div class="panel-content">
+                <div class="upload-section">
+                    <h3 style="margin-bottom: 10px;">RAG 문서 현황 목록</h3>
+                    <input type="file" id="file-input" style="display: none;" accept=".txt">
+                    <button class="upload-btn" onclick="document.getElementById('file-input').click()">
+                        📁 문서 업로드
+                    </button>
+                </div>
+                
+                <div class="document-list" id="document-list">
+                    <div class="loading">문서를 불러오는 중...</div>
+                </div>
+                
+                <div class="hit-section">
+                    <div class="hit-title">RAG 문서 Hit 진행 확인/Log</div>
+                    <div id="hit-info">
+                        <div style="color: #666; font-size: 13px;">질문 후 매칭된 문서 정보가 표시됩니다.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel" id="chat-panel">
+            <div class="panel-header">챗봇 메뉴</div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="message assistant">
+                    안녕하세요! RAG 기반 챗봇입니다. 등록된 문서를 기반으로 질문에 답변해드립니다.
+                </div>
+            </div>
+            <div class="chat-input-section">
+                <textarea 
+                    class="chat-input" 
+                    id="chat-input" 
+                    placeholder="질문을 입력하세요..." 
+                    rows="3"
+                ></textarea>
+                <button class="send-btn" onclick="sendMessage()">전송</button>
+            </div>
+        </div>
+        
+        <div class="panel" id="log-panel">
+            <div class="panel-header">진행 Log 확인</div>
+            <div class="panel-content log-content" id="log-content">
+                <div class="log-entry">
+                    <span class="log-timestamp">[시스템]</span>
+                    RAG 챗봇 시스템 초기화 완료
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws/logs`);
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'log') {
+                    addLogEntry(data.message, data.timestamp);
+                }
+            };
+            
+            ws.onclose = function() {
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+        
+        function addLogEntry(message, timestamp) {
+            const logContent = document.getElementById('log-content');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            const time = new Date(timestamp).toLocaleTimeString('ko-KR');
+            entry.innerHTML = `<span class="log-timestamp">[${time}]</span>${message}`;
+            
+            logContent.appendChild(entry);
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+        
+        async function loadDocuments() {
+            try {
+                const response = await fetch('/api/documents');
+                const documents = await response.json();
+                
+                const listDiv = document.getElementById('document-list');
+                
+                if (documents.length === 0) {
+                    listDiv.innerHTML = '<div class="loading">등록된 문서가 없습니다.</div>';
+                    return;
+                }
+                
+                listDiv.innerHTML = documents.map(doc => `
+                    <div class="document-item">
+                        <div class="doc-info">
+                            <div class="doc-name">📄 ${doc.file_name}</div>
+                            <div class="doc-meta">
+                                청크: ${doc.chunks_count} | 
+                                등록: ${new Date(doc.uploaded_at).toLocaleString('ko-KR')}
+                            </div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteDocument('${doc.doc_id}')">삭제</button>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('문서 로드 실패:', error);
+            }
+        }
+        
+        document.getElementById('file-input').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert(`문서 업로드 성공!\n${result.chunks_count}개의 청크로 분할되었습니다.`);
+                    loadDocuments();
+                } else {
+                    alert('업로드 실패: ' + result.message);
+                }
+            } catch (error) {
+                alert('업로드 중 오류 발생: ' + error);
+            }
+            
+            e.target.value = '';
+        });
+        
+        async function deleteDocument(docId) {
+            if (!confirm('정말 이 문서를 삭제하시겠습니까?')) return;
+            
+            try {
+                const response = await fetch(`/api/documents/${docId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert('문서가 삭제되었습니다.');
+                    loadDocuments();
+                } else {
+                    alert('삭제 실패: ' + result.message);
+                }
+            } catch (error) {
+                alert('삭제 중 오류 발생: ' + error);
+            }
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const question = input.value.trim();
+            
+            if (!question) return;
+            
+            addChatMessage(question, 'user');
+            input.value = '';
+            
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    addChatMessage(result.answer, 'assistant');
+                    displayHitInfo(result.hit_info);
+                } else {
+                    addChatMessage('오류: ' + result.message, 'assistant');
+                }
+                
+            } catch (error) {
+                addChatMessage('오류가 발생했습니다: ' + error, 'assistant');
+            }
+        }
+        
+        function addChatMessage(text, type) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+            
+            // 자동 스크롤
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function displayHitInfo(hitInfo) {
+            const hitDiv = document.getElementById('hit-info');
+            
+            if (!hitInfo || hitInfo.length === 0) {
+                hitDiv.innerHTML = '<div style="color: #666; font-size: 13px;">매칭된 문서가 없습니다.</div>';
+                return;
+            }
+            
+            hitDiv.innerHTML = hitInfo.map(hit => `
+                <div class="hit-item">
+                    <strong>#${hit.rank}</strong> ${hit.file_name}<br>
+                    <small>청크: ${hit.chunk_index} | 유사도: ${(hit.score * 100).toFixed(1)}%</small>
+                </div>
+            `).join('');
+        }
+        
+        document.getElementById('chat-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        connectWebSocket();
+        loadDocuments();
+    </script>
+</body>
+</html>

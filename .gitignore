@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# 환경 변수 (중요! AWS 키 보호)
+.env
+
+# Qdrant 데이터베이스
+qdrant_storage/
+
+# 로그
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 백업 파일
+*.backup
+*.bak
+*.old
+
+# 임시 파일
+*.tmp
+~*
